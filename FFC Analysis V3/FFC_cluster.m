@@ -1,10 +1,9 @@
-function [cluster_out] = FFC_cluster(pulseseq,thresh,mask,smoothing_size,mode_size,imagetype)
+function [cluster_out] = FFC_cluster(pulseseq,thresh,mask,smoothing_size,mode_size,imagetype,outlier)
 
 %% sort out the inputs and prepare the outputs
 
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % B0_pol = pulseseq.param{62, 3}./1000;
 Bevo = pulseseq.fieldpoints;
-B0_pol = pulseseq.B0_pol./1000;
 
 %% extracts the image from the pulse sequence object
 
@@ -13,6 +12,8 @@ data = abs(pulseseq.compleximage);
 else 
 data = pulseseq.magimage;
 end
+
+
 
 %% normalisation of the image
 [~,indnorm] = min(pulseseq.timepoints(1,:));
@@ -36,6 +37,18 @@ end
 
 %% vectorisation of the image
 clusdata = reshape(normalisedimage.*repmat(mask,1,1,size(data,4),size(data,5)),size(data,1)*size(data,2),size(data,4)*size(data,5));
+
+dimd = size(data);
+dimx = size(clusdata);
+
+outlierp = reshape(outlier,[dimd(5) dimd(4)]);
+outlierp2  = outlierp';
+outlierend = outlierp2(:);
+outlierend = outlierend';
+outlier2 = repmat(outlierend,[dimx(1), 1]);
+
+clusdata(outlier2 == 0) = NaN;
+clusdata = clusdata(:,all(~isnan(clusdata)));
 
 %% data for fit 
 datavtemp = squeeze(data);

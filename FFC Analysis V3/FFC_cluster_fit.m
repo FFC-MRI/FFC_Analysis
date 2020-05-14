@@ -1,4 +1,4 @@
-function [cluster_fit] = FFC_cluster_fit(cluster_out,min_cluster,startpoint_R1,noise_factor)
+function [cluster_fit] = FFC_cluster_fit(cluster_out,min_cluster,startpoint_R1,noise_factor,med_val,outliers)
 %% sort out the inputs and prepare the outputs
 
 pulseseq = cluster_out.pulseseq;
@@ -33,7 +33,13 @@ for indClust = 1:Nclust
 %     disp(indClust)
     % prepares the data
     temp = clusdata(T==indClust,:);
+    
+    if med_val == 1
     dataclust_t = median(temp,1);
+    else 
+    dataclust_t = mean(temp,1);
+    end
+    
     dataclust_t = reshape(dataclust_t,size(data,4),size(data,5));
     % estimate the start point
     dataclust(1,:,:) = dataclust_t;
@@ -42,7 +48,7 @@ for indClust = 1:Nclust
     
 startpoint = [startpoint_R1 -max(dataclust(:)) max(dataclust(:)) (noise_factor/100)*max(dataclust(:))];
      
-    [fitobject,gof,R1out] = fit_relaxation_cluster(dataclust,time./1000,Bevo,B0_pol,startpoint);
+    [fitobject,gof,R1out] = fit_relaxation_cluster_2(dataclust,time./1000,Bevo,B0_pol,startpoint,outliers);
     % extract the results from the fit
     
     cluster_fit.cluster(indClust,:) = indClust;
@@ -59,6 +65,14 @@ startpoint = [startpoint_R1 -max(dataclust(:)) max(dataclust(:)) (noise_factor/1
     cluster_fit.T = T;
     cluster_fit.data(indClust).a = dataclust_t;
     cluster_fit.time(indClust).a = time./1000;
+    if med_val == 1
+        cluster_fit.average_method = 'median';
+    else
+        cluster_fit.average_method = 'mean';
+    end
+        
+    cluster_fit.outliers = outliers;
+        
     
 end
 

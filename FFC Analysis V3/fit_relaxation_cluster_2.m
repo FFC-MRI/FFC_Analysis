@@ -3,9 +3,11 @@
 % t form = [no. evolution fields x no. evolution times], in s
 % B0 form = [no. evolution fields x 1], in mT
 
-function [fitobject,gof,R1out] = fit_relaxation_cluster(data_in,t,B0,B0_pol,startpoint)
+function [fitobject,gof,R1out] = fit_relaxation_cluster_2(data_in,t,B0,B0_pol,startpoint,outliers)
 
 [number_fields, number_times] = size(t);
+
+px = outliers;
 
 B0 = B0./1000;
 
@@ -13,11 +15,21 @@ data_int(:,:) = data_in(1,:,:);
 
 calv = max(data_int(:));
 
+    x = t; x = x(:);
+    x = x(logical(px));
+    y = repmat(B0,1,number_times); y = y(:); 
+    y = y(logical(px));
+    z = data_int'; z = z(:); 
+    z = z(logical(px));
+    
+    
+%      t = x;
+
 %% setting up surface fit 
 
     for nb = 1:number_fields
         
-        h{nb} = singleexphandle_ns(nb,t,B0_pol);
+        h{nb} = singleexphandle_ns(nb,px,t,B0_pol);
         
     end
     
@@ -55,11 +67,11 @@ calv = max(data_int(:));
     foption.MaxIter = 10000;
     foption.MaxFunEvals = 10000;
     
-    
-    x = t; x = x(:);
-    y = repmat(B0,1,number_times); y = y(:);
-    z = data_int'; z = z(:);
-    
+%     
+%     x = t; x = x(:);
+%     y = repmat(B0,1,number_times); y = y(:);
+%     z = data_int'; z = z(:);
+%     
     
     if nargin < 5
         foption.StartPoint = [R1start -10*calv 15*calv 0.02*calv];
@@ -77,14 +89,17 @@ calv = max(data_int(:));
     str_R1 = join(['R1 = [' string(newStrA) '];']);
     eval(string(str_R1));
     R1out = R1;
+   
     
 end
 
-function h = singleexphandle_ns(n,t,B0_pol)
+function h = singleexphandle_ns(n,px,t,B0_pol)
 
 mask = zeros(size(t));
 mask(n,:)=1;
 mask = mask(:);
+mask = mask(logical(px));
+
 
 h = @(R1, gamma, gammad, noise,  t, B0) model(R1, gamma, gammad, noise,  t, B0);
     
@@ -93,7 +108,10 @@ h = @(R1, gamma, gammad, noise,  t, B0) model(R1, gamma, gammad, noise,  t, B0);
             f = sqrt(((gamma*B0_pol-gammad*B0).*exp(-t*R1)+gammad*B0).^2 + ...
                 2*((gamma*B0_pol-gammad*B0).*exp(-t*R1)+gammad*B0).*abs(noise) + ...
                 2*noise.^2);
+       
             f = f.*mask;
+            
+           
         else
             f = zeros(size(B0));
         end
